@@ -1,0 +1,18 @@
+{
+  "name": "world-cup-multisource-live-ticker-scoreboard-os",
+  "version": "10.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev",
+    "deploy": "gh-pages -d ."
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "vercel": "^34.0.0"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
+}
