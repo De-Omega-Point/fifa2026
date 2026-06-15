@@ -90,14 +90,32 @@ async function fetchRealtime() {
   setConnection("checking", "Connecting to realtime feed…", `Calling ${apiUrl}`, "Checking");
 
   try {
-    const response = await fetch(apiUrl, { cache: "no-store", headers: { Accept: "application/json" } });
-    const payload = await response.json().catch(() => ({}));
+    let payload;
+    let fallbackUsed = false;
 
-    if (!response.ok) {
-      throw new Error(payload.error || `Live API returned ${response.status}`);
+    try {
+      const response = await fetch(apiUrl, { cache: "no-store", headers: { Accept: "application/json" } });
+      if (response.ok) {
+        payload = await response.json().catch(() => ({}));
+      } else if (apiUrl === "/api/live-scores") {
+        fallbackUsed = true;
+      } else {
+        const errPayload = await response.json().catch(() => ({}));
+        throw new Error(errPayload.error || `Live API returned ${response.status}`);
+      }
+    } catch (err) {
+      if (apiUrl === "/api/live-scores") {
+        fallbackUsed = true;
+      } else {
+        throw err;
+      }
     }
 
-    if (!Array.isArray(payload.matches)) {
+    if (fallbackUsed) {
+      payload = await fetchDirectEspn();
+    }
+
+    if (!payload || !Array.isArray(payload.matches)) {
       throw new Error("Live API response missing matches array");
     }
 
@@ -632,3 +650,107 @@ publishPublicState();
 render();
 fetchRealtime();
 setInterval(fetchRealtime, 30000);
+
+async function fetchDirectEspn() {
+  const url = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Direct ESPN API returned ${response.status}`);
+  const payload = await response.json();
+  const events = Array.isArray(payload.events) ? payload.events : [];
+  const matches = events.map(mapEspnEventToMatch).filter(Boolean);
+  return {
+    source: "espn-direct",
+    fetchedAt: new Date().toISOString(),
+    matches
+  };
+}
+
+function mapEspnEventToMatch(event) {
+  const competition = event.competitions?.[0];
+  if (!competition) return null;
+
+  const competitors = competition.competitors || [];
+  const home = competitors.find(item => item.homeAway === "home") || competitors[0];
+  const away = competitors.find(item => item.homeAway === "away") || competitors[1];
+
+  if (!home || !away) return null;
+
+  const status = mapEspnStatus(competition.status);
+  const elapsed = extractEspnElapsed(competition.status);
+
+  return {
+    id: String(event.id || competition.id || `${Date.now()}-${Math.random()}`),
+    group: competition.altGameNote || event.season?.slug || "FIFA World Cup",
+    round: competition.altGameNote || event.season?.slug || "FIFA World Cup",
+    status,
+    elapsed,
+    kickoff: competition.date || event.date || new Date().toISOString(),
+    venue: competition.venue?.fullName || "Venue TBC",
+    city: competition.venue?.address?.city || "",
+    home: {
+      name: home.team?.displayName || home.team?.name || "Home",
+      code: code(home.team?.abbreviation || home.team?.shortDisplayName || home.team?.displayName || "HOM"),
+      goals: numberOrNull(home.score)
+    },
+    away: {
+      name: away.team?.displayName || away.team?.name || "Away",
+      code: code(away.team?.abbreviation || away.team?.shortDisplayName || away.team?.displayName || "AWY"),
+      goals: numberOrNull(away.score)
+    },
+    events: mapEspnDetails(competition.details || [], home, away, status, elapsed)
+  };
+}
+
+function mapEspnStatus(statusObject) {
+  const state = String(statusObject?.type?.state || "").toLowerCase();
+  const name = String(statusObject?.type?.name || "").toLowerCase();
+  const detail = String(statusObject?.type?.detail || statusObject?.type?.shortDetail || statusObject?.displayClock || "").toLowerCase();
+
+  if (state === "in" || name.includes("in_progress") || detail.includes("'")) return "live";
+  if (state === "post" || statusObject?.type?.completed || name.includes("full_time") || detail === "ft") return "done";
+
+  return "upcoming";
+}
+
+function extractEspnElapsed(statusObject) {
+  const displayClock = String(statusObject?.displayClock || statusObject?.type?.detail || "");
+  const match = displayClock.match(/(\d{1,3})/);
+  if (match) return Number(match[1]);
+
+  const clockSeconds = Number(statusObject?.clock);
+  if (Number.isFinite(clockSeconds) && clockSeconds > 0) {
+    return Math.min(130, Math.max(0, Math.round(clockSeconds / 60)));
+  }
+
+  return 0;
+}
+
+function mapEspnDetails(details, home, away, status, elapsed) {
+  if (Array.isArray(details) && details.length) {
+    return details.map(detail => {
+      const minute = detail.clock?.displayValue || "INFO";
+      const teamId = detail.team?.id;
+      const teamCode =
+        teamId && home?.team?.id === teamId ? code(home.team?.abbreviation || home.team?.displayName) :
+        teamId && away?.team?.id === teamId ? code(away.team?.abbreviation || away.team?.displayName) :
+        "";
+
+      const athlete = detail.athletesInvolved?.[0]?.displayName || "";
+      const type = detail.type?.text || detail.text || "Match event";
+      const text = [type, athlete, teamCode].filter(Boolean).join(" · ");
+
+      return { minute, text };
+    });
+  }
+
+  return [{
+    minute: status === "live" ? `${elapsed || 0}'` : status === "done" ? "FT" : "KO",
+    text: "Fixture loaded from direct ESPN FIFA World Cup scoreboard."
+  }];
+}
+
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
