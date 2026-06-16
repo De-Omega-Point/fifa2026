@@ -1,7 +1,10 @@
+.DS_Store
 node_modules/
 .env
-.env.local
-.vercel
-.DS_Store
-*.zip
+.env.*
+!.env.example
 *.log
+*.tmp
+*.bak
+*.old
+*.zip

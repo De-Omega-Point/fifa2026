@@ -163,6 +163,62 @@
             <div class="analytics" id="analytics"></div>
           </section>
         </section>
+
+        <section class="split-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Community chat monitor</h2>
+                <p>Live messages and announcements.</p>
+              </div>
+              <button class="btn danger" id="clearChatBtn">Clear chat</button>
+            </div>
+            <div class="chat-list" id="chatList"></div>
+            <div class="chat-input-bar">
+              <input id="chatMessageInput" placeholder="Send official announcement..." />
+              <button class="btn primary" id="sendChatBtn">Send</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Fan sentiment & simulation</h2>
+                <p>Monitor fan reaction rates & triggers.</p>
+              </div>
+              <button class="btn" id="toggleSimulationBtn">Start simulation</button>
+            </div>
+            
+            <div class="sentiment-card">
+              <div class="sentiment-meter">
+                <div class="sentiment-labels">
+                  <span id="sentimentHomeLabel">HOME (TBC)</span>
+                  <span id="sentimentHomePct">50%</span>
+                </div>
+                <div class="sentiment-track">
+                  <div class="sentiment-fill-home" id="sentimentHomeFill" style="width: 50%"></div>
+                </div>
+              </div>
+              
+              <div class="sentiment-meter">
+                <div class="sentiment-labels">
+                  <span id="sentimentAwayLabel">AWAY (TBC)</span>
+                  <span id="sentimentAwayPct">50%</span>
+                </div>
+                <div class="sentiment-track">
+                  <div class="sentiment-fill-away" id="sentimentAwayFill" style="width: 50%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sim-controls">
+              <button class="btn" id="simGoalHomeBtn">Home Cheer</button>
+              <button class="btn" id="simGoalAwayBtn">Away Cheer</button>
+              <button class="btn" id="simRefBtn">Ref Complaint</button>
+              <button class="btn" id="simChantBtn">Chant/Song</button>
+            </div>
+          </section>
+        </section>
       </section>
     </section>
   </main>

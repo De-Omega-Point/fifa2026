@@ -12,7 +12,7 @@ Review Cycle: Weekly during tournament
 
 ## Core read
 
-This version adds a simultaneous free-API + server-side web-scraping combo.
+This version adds a simultaneous free-API + server-side web-scraping combo with bounded provider timeouts.
 
 The endpoint:
 
@@ -39,6 +39,12 @@ now runs multiple sources at the same time, merges results, and returns:
 ### Optional community API
 
 `https://worldcup26.ir/get/games`
+
+Disabled by default because community APIs can move, fail, or change response shape without notice. Enable with:
+
+```bash
+ENABLE_WORLDCUP26_FREE=true
+```
 
 ### Optional official FIFA page scrape
 
@@ -71,6 +77,7 @@ If all providers fail, the UI shows an error/warning instead of inventing fixtur
    - Web scrape
 6. A live ticker is generated from the merged data.
 7. A live scoreboard array is generated from the merged data.
+8. Slow providers are aborted after `PROVIDER_TIMEOUT_MS`, defaulting to 7000 ms.
 
 ## Deploy
 
@@ -83,8 +90,10 @@ npm run dev
 
 Then open:
 
-- `index.html` for cockpit
-- `public.html` for public display
+- `http://localhost:3000/index.html` for cockpit
+- `http://localhost:3000/public.html` for public display
+
+`npm run dev` uses `local-server.js`, a small credential-free Node server that serves the static app and the same `/api/live-scores` handler. Use `npm run vercel:dev` when you specifically want the Vercel CLI.
 
 ## Required dependency
 
@@ -99,3 +108,9 @@ Cheerio is used only inside the serverless scraping function.
 ## Important source note
 
 ESPN's endpoint is a public site JSON endpoint, not an official FIFA API. The WorldCup26 project is community/open-source, not official FIFA. Use official sources for official fixtures, results, public viewing rights and broadcast requirements.
+
+## Public display state
+
+The public screen now fetches the configured API on every refresh. It may render local cockpit settings immediately while waiting for the network, but it will not keep showing stale match scores as a substitute for a working live endpoint.
+
+`localStorage` sync is same-browser only. For multiple devices or production venues, deploy the API and configure every screen with the same `/api/live-scores` endpoint or an absolute Vercel API URL.

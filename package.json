@@ -4,15 +4,16 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vercel dev",
-    "start": "vercel dev",
+    "dev": "node local-server.js",
+    "start": "node local-server.js",
+    "vercel:dev": "vercel dev",
     "deploy": "gh-pages -d ."
   },
   "dependencies": {
-    "cheerio": "^1.0.0",
-    "vercel": "^34.0.0"
+    "cheerio": "^1.0.0"
   },
   "devDependencies": {
-    "gh-pages": "^6.3.0"
+    "gh-pages": "^6.3.0",
+    "vercel": "^34.0.0"
   }
 }

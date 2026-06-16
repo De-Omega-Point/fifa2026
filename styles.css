@@ -878,6 +878,235 @@ body[data-page="public"] { overflow: hidden; }
   font-size: clamp(.76rem,.92vw,1.08rem);
 }
 
+/* Community Chat & Sentiment Pulse */
+
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-bottom: 12px;
+}
+
+.chat-msg {
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  position: relative;
+  animation: chatFadeIn 0.25s ease-out forwards;
+}
+
+@keyframes chatFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-msg.operator {
+  border-color: rgba(110, 231, 255, 0.38);
+  background: rgba(110, 231, 255, 0.07);
+}
+
+.chat-msg.system {
+  border-style: dashed;
+  border-color: rgba(255, 209, 102, 0.2);
+  background: rgba(255, 209, 102, 0.03);
+  text-align: center;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+}
+
+.chat-sender {
+  font-weight: 850;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-sender.home-fan { color: var(--green); }
+.chat-sender.away-fan { color: var(--gold); }
+.chat-sender.operator { color: var(--cyan); }
+
+.chat-badge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.chat-badge.op-badge {
+  background: var(--cyan);
+  color: var(--bg);
+}
+
+.chat-badge.team-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+}
+
+.chat-time {
+  color: var(--muted);
+}
+
+.chat-text {
+  word-break: break-word;
+}
+
+.chat-input-bar {
+  display: flex;
+  gap: 8px;
+}
+
+/* Sentiment Gauge */
+.sentiment-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sentiment-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sentiment-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 760;
+  color: var(--muted);
+}
+
+.sentiment-labels b {
+  color: var(--ink);
+}
+
+.sentiment-track {
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+  display: flex;
+}
+
+.sentiment-fill-home {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  transition: width 0.4s ease;
+}
+
+.sentiment-fill-away {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--orange));
+  transition: width 0.4s ease;
+}
+
+/* Chat Simulator Control Panel */
+.sim-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Redesigned Tab Layout for Public notice-card */
+.tab-group {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 8px 16px;
+  font-weight: 850;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-size: clamp(0.85rem, 1vw, 1.15rem);
+}
+
+.tab-btn:hover {
+  color: var(--ink);
+}
+
+.tab-btn.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+  text-shadow: 0 0 12px rgba(131, 255, 130, 0.4);
+}
+
+.tab-badge-num {
+  font-size: 0.72rem;
+  font-weight: 950;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  padding: 2px 6px;
+  border-radius: 99px;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active .tab-badge-num {
+  background: var(--green);
+  color: var(--green-dark);
+}
+
+.tab-pane {
+  display: none;
+  height: 100%;
+  min-height: 0;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* Scrollbar styles for Chat and general */
+.chat-list::-webkit-scrollbar,
+.match-list::-webkit-scrollbar,
+.timeline::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-list::-webkit-scrollbar-track,
+.match-list::-webkit-scrollbar-track,
+.timeline::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-list::-webkit-scrollbar-thumb,
+.match-list::-webkit-scrollbar-thumb,
+.timeline::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 99px;
+}
+.chat-list::-webkit-scrollbar-thumb:hover,
+.match-list::-webkit-scrollbar-thumb:hover,
+.timeline::-webkit-scrollbar-thumb:hover {
+  background: rgba(131, 255, 130, 0.42);
+}
+
 @media (max-width: 1220px) {
   .hero { display: block; }
   .hero-actions { justify-content: flex-start; margin-top: 16px; }

@@ -18,6 +18,11 @@ The package was rebuilt as `world-cup-multisource-live-ticker-scoreboard-os`.
 - No embedded mock match data added
 - Scores remain read-only
 - Live source failures return warnings/errors rather than fake fixtures
+- Browser clients fetch the configured API instead of bypassing it with direct provider fallbacks
+- Public screen refreshes the API even when local cockpit state exists
+- Provider calls are bounded by `PROVIDER_TIMEOUT_MS`
+- Chat and fan-pulse controls are wired to local operator state
+- Local development server added for `/api/live-scores` without Vercel credentials
 
 ## Multi-source additions
 
@@ -33,14 +38,16 @@ The package was rebuilt as `world-cup-multisource-live-ticker-scoreboard-os`.
 
 - ESPN JSON API
 - ESPN scoreboard scraper
-- WorldCup26 community API
 
 ## Optional providers
 
+- WorldCup26 community API
 - API-Football with key
 - FIFA official page scraper
 - Custom JSON feed
 
 ## Notes
 
-The scraper is intentionally defensive. It may return zero records if a site is client-rendered or changes HTML, but that does not break the app because API providers run simultaneously.
+The scraper is intentionally defensive. It may return zero records if a site is client-rendered or changes HTML, but that does not break the app because API providers run simultaneously and each provider has a timeout.
+
+`localStorage` only syncs same-browser cockpit/public tabs. Multi-device public screens must use the same deployed API endpoint.

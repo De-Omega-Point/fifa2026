@@ -29,6 +29,7 @@ const DEFAULT_FIFA_SCRAPE_URL = "https://www.fifa.com/en/tournaments/mens/worldc
 const DEFAULT_WORLDCUP26_GAMES_URL = "https://worldcup26.ir/get/games";
 const DEFAULT_WORLDCUP26_GROUPS_URL = "https://worldcup26.ir/get/groups";
 const DEFAULT_WORLDCUP26_TEAMS_URL = "https://worldcup26.ir/get/teams";
+const DEFAULT_PROVIDER_TIMEOUT_MS = 7000;
 
 export default async function handler(req, res) {
   Object.entries(HEADERS).forEach(([key, value]) => res.setHeader(key, value));
@@ -60,47 +61,47 @@ async function fetchMultiSourceLiveData() {
     name: "espn-fifa-world-api",
     kind: "free-json-api",
     enabled: flag("ENABLE_ESPN_API", true),
-    run: fetchEspnFifaWorld
+    run: signal => fetchEspnFifaWorld(signal)
   });
 
   providers.push({
     name: "espn-scoreboard-scrape",
     kind: "web-scrape",
     enabled: flag("ENABLE_ESPN_SCRAPE", true),
-    run: () => fetchWebScrape("espn-scoreboard-scrape", process.env.ESPN_SCRAPE_URL || DEFAULT_ESPN_SCRAPE_URL)
+    run: signal => fetchWebScrape("espn-scoreboard-scrape", process.env.ESPN_SCRAPE_URL || DEFAULT_ESPN_SCRAPE_URL, signal)
   });
 
   providers.push({
     name: "fifa-scores-fixtures-scrape",
     kind: "web-scrape",
     enabled: flag("ENABLE_FIFA_SCRAPE", false),
-    run: () => fetchWebScrape("fifa-scores-fixtures-scrape", process.env.FIFA_SCRAPE_URL || DEFAULT_FIFA_SCRAPE_URL)
+    run: signal => fetchWebScrape("fifa-scores-fixtures-scrape", process.env.FIFA_SCRAPE_URL || DEFAULT_FIFA_SCRAPE_URL, signal)
   });
 
   providers.push({
     name: "worldcup26-community-api",
     kind: "free-json-api",
-    enabled: flag("ENABLE_WORLDCUP26_FREE", true),
-    run: fetchWorldCup26Free
+    enabled: flag("ENABLE_WORLDCUP26_FREE", false),
+    run: signal => fetchWorldCup26Free(signal)
   });
 
   providers.push({
     name: "api-football",
     kind: "api-key",
     enabled: Boolean(process.env.APISPORTS_KEY) && flag("ENABLE_API_FOOTBALL", true),
-    run: fetchApiFootball
+    run: signal => fetchApiFootball(signal)
   });
 
   providers.push({
     name: "custom-json-feed",
     kind: "custom-json",
     enabled: Boolean(process.env.JSON_FEED_URL) && flag("ENABLE_JSON_FEED", true),
-    run: fetchJsonFeed
+    run: signal => fetchJsonFeed(signal)
   });
 
   const enabledProviders = providers.filter(provider => provider.enabled);
 
-  const settled = await Promise.allSettled(enabledProviders.map(provider => provider.run()));
+  const settled = await Promise.allSettled(enabledProviders.map(runProvider));
 
   const reports = [];
   const warnings = [];
@@ -172,12 +173,29 @@ async function fetchMultiSourceLiveData() {
 /*
   ESPN FIFA World Cup scoreboard adapter.
 */
-async function fetchEspnFifaWorld() {
+async function runProvider(provider) {
+  const controller = new AbortController();
+  const timeoutMs = providerTimeoutMs();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await provider.run(controller.signal);
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error(`Timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchEspnFifaWorld(signal) {
   const baseUrl = process.env.ESPN_SCOREBOARD_URL || DEFAULT_ESPN_SCOREBOARD_URL;
   const dates = process.env.ESPN_DATES;
   const url = dates ? appendQuery(baseUrl, { dates }) : baseUrl;
 
-  const payload = await fetchJson(url);
+  const payload = await fetchJson(url, signal);
   const events = Array.isArray(payload.events) ? payload.events : [];
   const matches = events.map(mapEspnEventToMatch).filter(Boolean);
 
@@ -286,8 +304,8 @@ function mapEspnDetails(details, home, away, status, elapsed) {
   2. Parse embedded JSON blobs in script tags
   3. Parse visible scoreboard-like text blocks
 */
-async function fetchWebScrape(providerName, url) {
-  const html = await fetchText(url);
+async function fetchWebScrape(providerName, url, signal) {
+  const html = await fetchText(url, signal);
   const $ = cheerio.load(html);
 
   const matches = [
@@ -308,9 +326,10 @@ async function fetchWebScrape(providerName, url) {
   };
 }
 
-async function fetchText(url) {
+async function fetchText(url, signal) {
   const response = await fetch(url, {
     cache: "no-store",
+    signal,
     headers: {
       "Accept": "text/html,application/xhtml+xml,application/json,text/plain,*/*",
       "User-Agent": "Mozilla/5.0 (compatible; De-Omega-Point-LiveTickerScoreboard/1.0)"
@@ -487,15 +506,15 @@ function cleanTeamName(value) {
 /*
   Community/open-source World Cup 2026 adapter.
 */
-async function fetchWorldCup26Free() {
+async function fetchWorldCup26Free(signal) {
   const gamesUrl = process.env.WORLDCUP26_GAMES_URL || DEFAULT_WORLDCUP26_GAMES_URL;
   const groupsUrl = process.env.WORLDCUP26_GROUPS_URL || DEFAULT_WORLDCUP26_GROUPS_URL;
   const teamsUrl = process.env.WORLDCUP26_TEAMS_URL || DEFAULT_WORLDCUP26_TEAMS_URL;
 
   const [gamesPayload, groupsPayload, teamsPayload] = await Promise.allSettled([
-    fetchJson(gamesUrl),
-    fetchJson(groupsUrl),
-    fetchJson(teamsUrl)
+    fetchJson(gamesUrl, signal),
+    fetchJson(groupsUrl, signal),
+    fetchJson(teamsUrl, signal)
   ]);
 
   if (gamesPayload.status !== "fulfilled") {
@@ -534,11 +553,11 @@ async function fetchWorldCup26Free() {
 /*
   Alternative JSON feed adapter.
 */
-async function fetchJsonFeed() {
+async function fetchJsonFeed(signal) {
   const url = process.env.JSON_FEED_URL;
   if (!url) throw new Error("JSON_FEED_URL is missing");
 
-  const payload = await fetchJson(url);
+  const payload = await fetchJson(url, signal);
   if (!Array.isArray(payload.matches)) throw new Error("JSON feed must include a matches array");
 
   return {
@@ -552,7 +571,7 @@ async function fetchJsonFeed() {
 /*
   Optional API-Football adapter.
 */
-async function fetchApiFootball() {
+async function fetchApiFootball(signal) {
   const key = process.env.APISPORTS_KEY;
   if (!key) throw new Error("APISPORTS_KEY is missing. Configure the live API key. No mock data returned.");
 
@@ -560,10 +579,10 @@ async function fetchApiFootball() {
   const season = process.env.APISPORTS_SEASON || "2026";
   const today = new Date().toISOString().slice(0, 10);
 
-  let data = await callApiSports(`https://v3.football.api-sports.io/fixtures?league=${league}&season=${season}&live=all`, key);
+  let data = await callApiSports(`https://v3.football.api-sports.io/fixtures?league=${league}&season=${season}&live=all`, key, signal);
 
   if (!data.response || !data.response.length) {
-    data = await callApiSports(`https://v3.football.api-sports.io/fixtures?league=${league}&season=${season}&date=${today}`, key);
+    data = await callApiSports(`https://v3.football.api-sports.io/fixtures?league=${league}&season=${season}&date=${today}`, key, signal);
   }
 
   return {
@@ -670,8 +689,8 @@ function buildTicker(matches, providerReports, warnings) {
 /*
   Shared helpers.
 */
-async function fetchJson(url) {
-  const text = await fetchText(url);
+async function fetchJson(url, signal) {
+  const text = await fetchText(url, signal);
 
   try {
     return JSON.parse(text);
@@ -680,8 +699,8 @@ async function fetchJson(url) {
   }
 }
 
-async function callApiSports(url, key) {
-  const response = await fetch(url, { headers: { "x-apisports-key": key } });
+async function callApiSports(url, key, signal) {
+  const response = await fetch(url, { signal, headers: { "x-apisports-key": key } });
   if (!response.ok) throw new Error(`API-SPORTS returned ${response.status}`);
   return response.json();
 }
@@ -948,4 +967,9 @@ function flag(name, defaultValue) {
 function envList(key, fallback) {
   const raw = process.env[key];
   return raw ? raw.split(",").map(x => x.trim()).filter(Boolean).slice(0, 3) : fallback;
+}
+
+function providerTimeoutMs() {
+  const value = Number(process.env.PROVIDER_TIMEOUT_MS || DEFAULT_PROVIDER_TIMEOUT_MS);
+  return Number.isFinite(value) && value >= 1000 ? value : DEFAULT_PROVIDER_TIMEOUT_MS;
 }

@@ -6,6 +6,11 @@
 
 const TRACK_KEY = "wc_live_only_tracking_state";
 const PUBLIC_KEY = "wc_live_only_public_state";
+const DEFAULT_API_URL = "/api/live-scores";
+const REFRESH_MS = 30000;
+const CHAT_LIMIT = 80;
+const CHAT_RENDER_LIMIT = 60;
+const SIMULATION_INTERVAL_MS = 4500;
 
 const EMPTY_LIVE_STATE = {
   source: "not-connected",
@@ -18,17 +23,21 @@ const EMPTY_TRACKING = {
   eventName: "",
   notice: "",
   sponsors: [],
-  apiUrl: "/api/live-scores",
+  apiUrl: DEFAULT_API_URL,
   selectedMatchId: null,
   mainMatchId: null,
   checkins: 0,
   interactions: 0,
   venues: [],
-  incidents: []
+  incidents: [],
+  chatMessages: [],
+  sentiment: { home: 50, away: 50 },
+  simulationRunning: false
 };
 
 let liveState = { ...EMPTY_LIVE_STATE };
 let tracking = loadTracking();
+let simulationTimer = null;
 
 // Allow query parameter override
 const urlParams = new URLSearchParams(window.location.search);
@@ -44,15 +53,33 @@ const $ = id => document.getElementById(id);
 function loadTracking() {
   try {
     const raw = localStorage.getItem(TRACK_KEY);
-    if (raw) return { ...structuredCloneSafe(EMPTY_TRACKING), ...JSON.parse(raw) };
+    if (raw) return normaliseTrackingState(JSON.parse(raw));
   } catch {}
-  return structuredCloneSafe(EMPTY_TRACKING);
+  return normaliseTrackingState();
+}
+
+function normaliseTrackingState(value = {}) {
+  const base = structuredCloneSafe(EMPTY_TRACKING);
+  const next = { ...base, ...value };
+
+  next.sponsors = Array.isArray(next.sponsors) ? next.sponsors : [];
+  next.venues = Array.isArray(next.venues) ? next.venues : [];
+  next.incidents = Array.isArray(next.incidents) ? next.incidents : [];
+  next.chatMessages = Array.isArray(next.chatMessages) ? next.chatMessages.slice(-CHAT_LIMIT) : [];
+  next.sentiment = {
+    home: clamp(next.sentiment?.home ?? base.sentiment.home, 0, 100),
+    away: clamp(next.sentiment?.away ?? base.sentiment.away, 0, 100)
+  };
+  next.simulationRunning = Boolean(next.simulationRunning);
+
+  return next;
 }
 
 function saveTracking() {
   localStorage.setItem(TRACK_KEY, JSON.stringify(tracking));
   publishPublicState();
   render();
+  syncSimulationTimer();
 }
 
 function publishPublicState() {
@@ -67,7 +94,7 @@ function publishPublicState() {
     eventName: tracking.eventName,
     notice: tracking.notice,
     sponsors: tracking.sponsors,
-    apiUrl: tracking.apiUrl || "/api/live-scores",
+    apiUrl: tracking.apiUrl || DEFAULT_API_URL,
     mainMatchId: tracking.mainMatchId,
     selectedMatchId: selectedMatchId,
     venue: busiest ? {
@@ -86,33 +113,15 @@ function publishPublicState() {
 }
 
 async function fetchRealtime() {
-  const apiUrl = tracking.apiUrl || "/api/live-scores";
+  const apiUrl = tracking.apiUrl || DEFAULT_API_URL;
   setConnection("checking", "Connecting to realtime feed…", `Calling ${apiUrl}`, "Checking");
 
   try {
-    let payload;
-    let fallbackUsed = false;
+    const response = await fetch(apiUrl, { cache: "no-store", headers: { Accept: "application/json" } });
+    const payload = await response.json().catch(() => ({}));
 
-    try {
-      const response = await fetch(apiUrl, { cache: "no-store", headers: { Accept: "application/json" } });
-      if (response.ok) {
-        payload = await response.json().catch(() => ({}));
-      } else if (apiUrl === "/api/live-scores") {
-        fallbackUsed = true;
-      } else {
-        const errPayload = await response.json().catch(() => ({}));
-        throw new Error(errPayload.error || `Live API returned ${response.status}`);
-      }
-    } catch (err) {
-      if (apiUrl === "/api/live-scores") {
-        fallbackUsed = true;
-      } else {
-        throw err;
-      }
-    }
-
-    if (fallbackUsed) {
-      payload = await fetchDirectEspn();
+    if (!response.ok) {
+      throw new Error(payload.error || `Live API returned ${response.status}`);
     }
 
     if (!payload || !Array.isArray(payload.matches)) {
@@ -210,6 +219,8 @@ function render() {
   renderPulse();
   renderIncidents();
   renderAnalytics();
+  renderChat();
+  renderSentiment();
 }
 
 function setConnection(type, title, detail, pill) {
@@ -237,7 +248,7 @@ function renderSettings() {
   $("eventNameInput").value = tracking.eventName || "";
   $("noticeInput").value = tracking.notice || "";
   $("sponsorsInput").value = (tracking.sponsors || []).join(", ");
-  $("apiUrlInput").value = tracking.apiUrl || "/api/live-scores";
+  $("apiUrlInput").value = tracking.apiUrl || DEFAULT_API_URL;
 }
 
 function renderKpis() {
@@ -472,6 +483,167 @@ function renderAnalytics() {
   `).join("");
 }
 
+function renderChat() {
+  const messages = tracking.chatMessages || [];
+
+  if (!messages.length) {
+    $("chatList").innerHTML = `<div class="empty-state">No fan pulse messages yet.</div>`;
+    return;
+  }
+
+  $("chatList").innerHTML = messages.slice(-CHAT_RENDER_LIMIT).map(item => {
+    const role = item.role === "operator" ? "operator" : item.role === "system" ? "system" : "";
+    const senderClass = item.team === "home" ? "home-fan" : item.team === "away" ? "away-fan" : "";
+    const badge = item.role === "operator" ? "OP" : item.team === "home" ? "HOME" : item.team === "away" ? "AWAY" : "SYS";
+    const badgeClass = item.role === "operator" ? "op-badge" : item.team === "home" || item.team === "away" ? "team-badge" : "";
+
+    return `
+      <article class="chat-msg ${role}">
+        <div class="chat-header">
+          <span class="chat-sender ${senderClass}">${escapeHtml(item.sender || "Pulse")}</span>
+          <span class="chat-badge ${badgeClass}">${escapeHtml(badge)}</span>
+          <time class="chat-time">${formatTime(item.time)}</time>
+        </div>
+        <p class="chat-text">${escapeHtml(item.text)}</p>
+      </article>
+    `;
+  }).join("");
+
+  $("chatList").scrollTop = $("chatList").scrollHeight;
+}
+
+function renderSentiment() {
+  const match = selectedMatch();
+  const homeCode = match?.home?.code || "HOME";
+  const awayCode = match?.away?.code || "AWAY";
+  const home = clamp(tracking.sentiment?.home ?? 50, 0, 100);
+  const away = clamp(tracking.sentiment?.away ?? 50, 0, 100);
+
+  $("sentimentHomeLabel").textContent = `${homeCode} pulse`;
+  $("sentimentAwayLabel").textContent = `${awayCode} pulse`;
+  $("sentimentHomePct").textContent = `${home}%`;
+  $("sentimentAwayPct").textContent = `${away}%`;
+  $("sentimentHomeFill").style.width = `${home}%`;
+  $("sentimentAwayFill").style.width = `${away}%`;
+  $("toggleSimulationBtn").textContent = tracking.simulationRunning ? "Stop simulation" : "Start simulation";
+}
+
+function sendOfficialMessage() {
+  const input = $("chatMessageInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  addChatMessage({
+    role: "operator",
+    team: "operator",
+    sender: "Operator",
+    text
+  });
+
+  input.value = "";
+}
+
+function addChatMessage(message, options = {}) {
+  tracking.chatMessages.push({
+    id: "m" + Date.now() + Math.random().toString(36).slice(2, 6),
+    time: new Date().toISOString(),
+    role: message.role || "system",
+    team: message.team || "system",
+    sender: message.sender || "Pulse",
+    text: message.text || "Update logged."
+  });
+
+  tracking.chatMessages = tracking.chatMessages.slice(-CHAT_LIMIT);
+  if (options.countInteraction !== false) tracking.interactions += 1;
+  saveTracking();
+}
+
+function clearChat() {
+  tracking.chatMessages = [];
+  tracking.interactions += 1;
+  saveTracking();
+}
+
+function toggleSimulation() {
+  tracking.simulationRunning = !tracking.simulationRunning;
+  tracking.interactions += 1;
+  addChatMessage({
+    role: "system",
+    team: "system",
+    sender: "Fan Pulse",
+    text: tracking.simulationRunning ? "Fan pulse simulation started." : "Fan pulse simulation stopped."
+  }, { countInteraction: false });
+  syncSimulationTimer();
+}
+
+function syncSimulationTimer() {
+  if (tracking.simulationRunning && !simulationTimer) {
+    simulationTimer = setInterval(simulateFanPulse, SIMULATION_INTERVAL_MS);
+  } else if (!tracking.simulationRunning && simulationTimer) {
+    clearInterval(simulationTimer);
+    simulationTimer = null;
+  }
+}
+
+function simulateFanPulse() {
+  const match = selectedMatch();
+  if (!match) return;
+
+  const templates = [
+    { team: "home", delta: 6, sender: `${match.home.code} fans`, text: `${match.home.name} support is surging.` },
+    { team: "away", delta: -6, sender: `${match.away.code} fans`, text: `${match.away.name} chants are picking up.` },
+    { team: "home", delta: 3, sender: "Crowd monitor", text: `${match.home.code} section volume increased.` },
+    { team: "away", delta: -3, sender: "Crowd monitor", text: `${match.away.code} section volume increased.` },
+    { team: "system", delta: Math.random() > 0.5 ? 2 : -2, sender: "Fan Pulse", text: "Neutral crowd reaction spike logged." }
+  ];
+
+  const item = templates[Math.floor(Math.random() * templates.length)];
+  shiftSentiment(item.delta, false);
+  addChatMessage({
+    role: "system",
+    team: item.team,
+    sender: item.sender,
+    text: item.text
+  }, { countInteraction: false });
+}
+
+function triggerPulse(type) {
+  const match = selectedMatch();
+  if (!match) {
+    addChatMessage({
+      role: "system",
+      team: "system",
+      sender: "Fan Pulse",
+      text: "Connect a live match before logging fan triggers."
+    });
+    return;
+  }
+
+  if (type === "home") {
+    shiftSentiment(10);
+    addChatMessage({ role: "system", team: "home", sender: `${match.home.code} pulse`, text: `${match.home.name} cheer spike logged.` });
+  } else if (type === "away") {
+    shiftSentiment(-10);
+    addChatMessage({ role: "system", team: "away", sender: `${match.away.code} pulse`, text: `${match.away.name} cheer spike logged.` });
+  } else if (type === "ref") {
+    shiftSentiment(Math.random() > 0.5 ? 4 : -4);
+    addChatMessage({ role: "system", team: "system", sender: "Crowd monitor", text: "Referee complaint spike logged." });
+  } else {
+    shiftSentiment(Math.random() > 0.5 ? 5 : -5);
+    addChatMessage({ role: "system", team: "system", sender: "Crowd monitor", text: "Chant wave logged across the venue." });
+  }
+}
+
+function shiftSentiment(deltaHome, shouldRender = true) {
+  const home = clamp(Number(tracking.sentiment?.home ?? 50) + Number(deltaHome || 0), 5, 95);
+  tracking.sentiment = {
+    home,
+    away: 100 - home
+  };
+
+  if (shouldRender) renderSentiment();
+}
+
 function addZone() {
   const name = prompt("Zone name:");
   if (!name) return;
@@ -547,8 +719,9 @@ function downloadCsv() {
 function clearTracking() {
   localStorage.removeItem(TRACK_KEY);
   localStorage.removeItem(PUBLIC_KEY);
-  tracking = structuredCloneSafe(EMPTY_TRACKING);
+  tracking = normaliseTrackingState();
   selectedMatchId = null;
+  syncSimulationTimer();
   render();
 }
 
@@ -557,7 +730,7 @@ function saveSettings() {
   tracking.eventName = $("eventNameInput").value.trim();
   tracking.notice = $("noticeInput").value.trim();
   tracking.sponsors = $("sponsorsInput").value.split(",").map(item => item.trim()).filter(Boolean).slice(0, 3);
-  tracking.apiUrl = $("apiUrlInput").value.trim() || "/api/live-scores";
+  tracking.apiUrl = $("apiUrlInput").value.trim() || DEFAULT_API_URL;
   tracking.interactions += 1;
   saveTracking();
   if (oldUrl !== tracking.apiUrl) {
@@ -629,16 +802,30 @@ function structuredCloneSafe(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-$("matchSearch").addEventListener("input", renderMatchList);
-$("statusFilter").addEventListener("change", renderMatchList);
-$("refreshBtn").addEventListener("click", fetchRealtime);
-$("exportBtn").addEventListener("click", exportJson);
-$("downloadCsvBtn").addEventListener("click", downloadCsv);
-$("clearBtn").addEventListener("click", clearTracking);
-$("addZoneBtn").addEventListener("click", addZone);
-$("addIncidentBtn").addEventListener("click", addIncident);
-$("saveSettingsBtn").addEventListener("click", saveSettings);
-$("setFeaturedBtn").addEventListener("click", () => {
+function on(id, event, handler) {
+  $(id).addEventListener(event, handler);
+}
+
+on("matchSearch", "input", renderMatchList);
+on("statusFilter", "change", renderMatchList);
+on("refreshBtn", "click", fetchRealtime);
+on("exportBtn", "click", exportJson);
+on("downloadCsvBtn", "click", downloadCsv);
+on("clearBtn", "click", clearTracking);
+on("addZoneBtn", "click", addZone);
+on("addIncidentBtn", "click", addIncident);
+on("saveSettingsBtn", "click", saveSettings);
+on("clearChatBtn", "click", clearChat);
+on("sendChatBtn", "click", sendOfficialMessage);
+on("chatMessageInput", "keydown", event => {
+  if (event.key === "Enter") sendOfficialMessage();
+});
+on("toggleSimulationBtn", "click", toggleSimulation);
+on("simGoalHomeBtn", "click", () => triggerPulse("home"));
+on("simGoalAwayBtn", "click", () => triggerPulse("away"));
+on("simRefBtn", "click", () => triggerPulse("ref"));
+on("simChantBtn", "click", () => triggerPulse("chant"));
+on("setFeaturedBtn", "click", () => {
   const match = selectedMatch();
   if (!match) return;
   tracking.mainMatchId = match.id;
@@ -648,109 +835,6 @@ $("setFeaturedBtn").addEventListener("click", () => {
 
 publishPublicState();
 render();
+syncSimulationTimer();
 fetchRealtime();
-setInterval(fetchRealtime, 30000);
-
-async function fetchDirectEspn() {
-  const url = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Direct ESPN API returned ${response.status}`);
-  const payload = await response.json();
-  const events = Array.isArray(payload.events) ? payload.events : [];
-  const matches = events.map(mapEspnEventToMatch).filter(Boolean);
-  return {
-    source: "espn-direct",
-    fetchedAt: new Date().toISOString(),
-    matches
-  };
-}
-
-function mapEspnEventToMatch(event) {
-  const competition = event.competitions?.[0];
-  if (!competition) return null;
-
-  const competitors = competition.competitors || [];
-  const home = competitors.find(item => item.homeAway === "home") || competitors[0];
-  const away = competitors.find(item => item.homeAway === "away") || competitors[1];
-
-  if (!home || !away) return null;
-
-  const status = mapEspnStatus(competition.status);
-  const elapsed = extractEspnElapsed(competition.status);
-
-  return {
-    id: String(event.id || competition.id || `${Date.now()}-${Math.random()}`),
-    group: competition.altGameNote || event.season?.slug || "FIFA World Cup",
-    round: competition.altGameNote || event.season?.slug || "FIFA World Cup",
-    status,
-    elapsed,
-    kickoff: competition.date || event.date || new Date().toISOString(),
-    venue: competition.venue?.fullName || "Venue TBC",
-    city: competition.venue?.address?.city || "",
-    home: {
-      name: home.team?.displayName || home.team?.name || "Home",
-      code: code(home.team?.abbreviation || home.team?.shortDisplayName || home.team?.displayName || "HOM"),
-      goals: numberOrNull(home.score)
-    },
-    away: {
-      name: away.team?.displayName || away.team?.name || "Away",
-      code: code(away.team?.abbreviation || away.team?.shortDisplayName || away.team?.displayName || "AWY"),
-      goals: numberOrNull(away.score)
-    },
-    events: mapEspnDetails(competition.details || [], home, away, status, elapsed)
-  };
-}
-
-function mapEspnStatus(statusObject) {
-  const state = String(statusObject?.type?.state || "").toLowerCase();
-  const name = String(statusObject?.type?.name || "").toLowerCase();
-  const detail = String(statusObject?.type?.detail || statusObject?.type?.shortDetail || statusObject?.displayClock || "").toLowerCase();
-
-  if (state === "in" || name.includes("in_progress") || detail.includes("'")) return "live";
-  if (state === "post" || statusObject?.type?.completed || name.includes("full_time") || detail === "ft") return "done";
-
-  return "upcoming";
-}
-
-function extractEspnElapsed(statusObject) {
-  const displayClock = String(statusObject?.displayClock || statusObject?.type?.detail || "");
-  const match = displayClock.match(/(\d{1,3})/);
-  if (match) return Number(match[1]);
-
-  const clockSeconds = Number(statusObject?.clock);
-  if (Number.isFinite(clockSeconds) && clockSeconds > 0) {
-    return Math.min(130, Math.max(0, Math.round(clockSeconds / 60)));
-  }
-
-  return 0;
-}
-
-function mapEspnDetails(details, home, away, status, elapsed) {
-  if (Array.isArray(details) && details.length) {
-    return details.map(detail => {
-      const minute = detail.clock?.displayValue || "INFO";
-      const teamId = detail.team?.id;
-      const teamCode =
-        teamId && home?.team?.id === teamId ? code(home.team?.abbreviation || home.team?.displayName) :
-        teamId && away?.team?.id === teamId ? code(away.team?.abbreviation || away.team?.displayName) :
-        "";
-
-      const athlete = detail.athletesInvolved?.[0]?.displayName || "";
-      const type = detail.type?.text || detail.text || "Match event";
-      const text = [type, athlete, teamCode].filter(Boolean).join(" · ");
-
-      return { minute, text };
-    });
-  }
-
-  return [{
-    minute: status === "live" ? `${elapsed || 0}'` : status === "done" ? "FT" : "KO",
-    text: "Fixture loaded from direct ESPN FIFA World Cup scoreboard."
-  }];
-}
-
-function numberOrNull(value) {
-  if (value === null || value === undefined || value === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
+setInterval(fetchRealtime, REFRESH_MS);
