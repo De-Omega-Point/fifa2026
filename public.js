@@ -6,6 +6,7 @@
 
 const PUBLIC_KEY = "wc_live_only_public_state";
 const API_URL = "/api/live-scores";
+const STATIC_FEED_URL = "./data/live-scores.json";
 const REFRESH_MS = 5000;
 const TICKER_PX_PER_SECOND = 82;
 
@@ -38,14 +39,7 @@ async function loadState() {
   }
 
   try {
-    const response = await fetch(apiUrl, { cache: "no-store", headers: { Accept: "application/json" } });
-    const payload = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(payload.error || `API returned ${response.status}`);
-    }
-
-    state = normaliseState(payload);
+    state = normaliseState(await fetchLivePayload(apiUrl));
   } catch (error) {
     state = {
       source: "not-connected",
@@ -61,6 +55,25 @@ async function loadState() {
   }
 
   render();
+}
+
+async function fetchLivePayload(apiUrl) {
+  try {
+    return await fetchJsonPayload(apiUrl);
+  } catch {
+    return fetchJsonPayload(STATIC_FEED_URL);
+  }
+}
+
+async function fetchJsonPayload(url) {
+  const response = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || `${url} returned ${response.status}`);
+  }
+
+  return payload;
 }
 
 function readLocal() {

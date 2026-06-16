@@ -23,6 +23,9 @@ The package was rebuilt as `world-cup-multisource-live-ticker-scoreboard-os`.
 - Provider calls are bounded by `PROVIDER_TIMEOUT_MS`
 - Chat and fan-pulse controls are wired to local operator state
 - Local development server added for `/api/live-scores` without Vercel credentials
+- GitHub Pages static snapshot added at `data/live-scores.json`
+- Browser clients fall back to the generated snapshot when `/api/live-scores` is unavailable
+- Pages deployment now publishes `dist/` instead of the full source tree
 
 ## Multi-source additions
 
@@ -50,4 +53,4 @@ The package was rebuilt as `world-cup-multisource-live-ticker-scoreboard-os`.
 
 The scraper is intentionally defensive. It may return zero records if a site is client-rendered or changes HTML, but that does not break the app because API providers run simultaneously and each provider has a timeout.
 
-`localStorage` only syncs same-browser cockpit/public tabs. Multi-device public screens must use the same deployed API endpoint.
+`localStorage` only syncs same-browser cockpit/public tabs. Multi-device public screens should use the same deployed API endpoint for true live behavior, or the same GitHub Pages site for scheduled static snapshots.

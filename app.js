@@ -7,6 +7,7 @@
 const TRACK_KEY = "wc_live_only_tracking_state";
 const PUBLIC_KEY = "wc_live_only_public_state";
 const DEFAULT_API_URL = "/api/live-scores";
+const STATIC_FEED_URL = "./data/live-scores.json";
 const REFRESH_MS = 30000;
 const CHAT_LIMIT = 80;
 const CHAT_RENDER_LIMIT = 60;
@@ -119,12 +120,7 @@ async function fetchRealtime() {
   setConnection("checking", "Connecting to realtime feed…", `Calling ${apiUrl}`, "Checking");
 
   try {
-    const response = await fetch(apiUrl, { cache: "no-store", headers: { Accept: "application/json" } });
-    const payload = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(payload.error || `Live API returned ${response.status}`);
-    }
+    const { payload, fallbackUsed, primaryError } = await fetchLivePayload(apiUrl);
 
     if (!payload || !Array.isArray(payload.matches)) {
       throw new Error("Live API response missing matches array");
@@ -147,7 +143,14 @@ async function fetchRealtime() {
     } else {
       selectedMatchId = selectedMatchId && liveState.matches.some(m => m.id === selectedMatchId) ? selectedMatchId : liveState.matches[0].id;
       tracking.selectedMatchId = selectedMatchId;
-      setConnection("ok", "Realtime feed connected", `${liveState.matches.length} live API match record(s) received.`, liveState.source);
+      setConnection(
+        fallbackUsed ? "warn" : "ok",
+        fallbackUsed ? "Static free-data snapshot loaded" : "Realtime feed connected",
+        fallbackUsed
+          ? `${liveState.matches.length} snapshot match record(s) loaded from ${STATIC_FEED_URL}. Primary feed issue: ${primaryError}`
+          : `${liveState.matches.length} live API match record(s) received.`,
+        fallbackUsed ? "Static data" : liveState.source
+      );
     }
 
     if (!tracking.eventName && liveState.eventName) tracking.eventName = liveState.eventName;
@@ -174,6 +177,34 @@ async function fetchRealtime() {
     publishPublicState();
     render();
   }
+}
+
+async function fetchLivePayload(apiUrl) {
+  try {
+    return {
+      payload: await fetchJsonPayload(apiUrl),
+      fallbackUsed: false,
+      primaryError: null
+    };
+  } catch (error) {
+    const payload = await fetchJsonPayload(STATIC_FEED_URL);
+    return {
+      payload,
+      fallbackUsed: true,
+      primaryError: error.message
+    };
+  }
+}
+
+async function fetchJsonPayload(url) {
+  const response = await fetch(url, { cache: "no-store", headers: { Accept: "application/json" } });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || `${url} returned ${response.status}`);
+  }
+
+  return payload;
 }
 
 function normaliseMatch(match) {

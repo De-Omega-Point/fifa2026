@@ -4,10 +4,12 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "build:data": "node scripts/build-static-data.js",
+    "build:pages": "npm run build:data && node scripts/build-pages.js",
     "dev": "node local-server.js",
     "start": "node local-server.js",
     "vercel:dev": "vercel dev",
-    "deploy": "gh-pages -d ."
+    "deploy": "npm run build:pages && gh-pages -d dist"
   },
   "dependencies": {
     "cheerio": "^1.0.0"

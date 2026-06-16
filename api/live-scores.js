@@ -54,7 +54,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function fetchMultiSourceLiveData() {
+export async function fetchMultiSourceLiveData() {
   const providers = [];
 
   providers.push({

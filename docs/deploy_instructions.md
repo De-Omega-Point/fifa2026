@@ -6,13 +6,17 @@ Recommended production path: deploy the whole project to **Vercel** so the front
 
 Alternative path: deploy the **Backend API** to **Vercel** and the **Frontend** to **GitHub Pages**. GitHub Pages only hosts static files, so the cockpit must be configured with the absolute Vercel API URL.
 
+Static-only path: deploy to **GitHub Pages** with a generated `data/live-scores.json` snapshot. This gives free-data access on Pages without a backend. It is refreshed by `npm run deploy`.
+
 For local development, run:
 
 ```bash
 npm run dev
 ```
 
-This starts `local-server.js` at `http://localhost:3000` and does not require Vercel login. If you need the Vercel CLI locally, run:
+This starts `local-server.js` at `http://localhost:3000` and does not require Vercel login. It serves both the frontend and `/api/live-scores`.
+
+If you need the Vercel CLI locally, run:
 
 ```bash
 npm run vercel:dev
@@ -69,7 +73,7 @@ We have configured `package.json` with a deployment script using the `gh-pages` 
    ```bash
    npm run deploy
    ```
-   *This command publishes the static frontend files to a new `gh-pages` branch. GitHub Pages will not run the `/api` serverless function.*
+   *This command fetches free data, writes `data/live-scores.json`, builds `dist/`, and publishes the static frontend plus generated data to the `gh-pages` branch. GitHub Pages will not run the `/api` serverless function.*
 2. Go to your repository on GitHub.
 3. Navigate to **Settings** -> **Pages**.
 4. Under **Build and deployment**, ensure the **Branch** is set to `gh-pages` (root `/`) and click **Save**.
@@ -85,9 +89,13 @@ We have configured `package.json` with a deployment script using the `gh-pages` 
    - Paste your Vercel API endpoint: `https://<YOUR-VERCEL-DOMAIN>.vercel.app/api/live-scores`
    - Click **Save public settings**.
 3. Click **Open public screen**.
-4. **All set!** The cockpit and public screen running on GitHub Pages will now fetch live match data from your serverless API hosted on Vercel.
+4. **All set!** The cockpit and public screen running on GitHub Pages will first try the configured live API. If no backend API is available, they will fall back to the generated static snapshot at `data/live-scores.json`.
 
 Important: `localStorage` sync only works between tabs/windows in the same browser profile and origin. It does not sync separate laptops, TVs, browsers, or phones. Configure each production screen with the same Vercel API URL.
+
+## Optional: Automatic Free-Data Refresh on GitHub Pages
+
+You can add a GitHub Actions workflow later to run `npm run deploy` on a schedule. The current GitHub token used for this session cannot create workflow files because it does not have `workflow` scope.
 
 > [!NOTE]
 > If you want to load the Cockpit with a pre-configured API URL directly, you can append it as a query parameter in your URL:

@@ -14,17 +14,23 @@ Review Cycle: Weekly during tournament
 
 This version adds a simultaneous free-API + server-side web-scraping combo with bounded provider timeouts.
 
-The endpoint:
+The live endpoint:
 
 `/api/live-scores`
 
-now runs multiple sources at the same time, merges results, and returns:
+runs multiple sources at the same time, merges results, and returns:
 
 - `matches`
 - `scoreboard`
 - `ticker`
 - `providers`
 - `warnings`
+
+For GitHub Pages, where serverless scraping cannot run, `npm run deploy` also generates:
+
+`data/live-scores.json`
+
+That file is a real-data snapshot generated from the same free APIs and scraping adapters. The browser tries `/api/live-scores` first and falls back to the static snapshot when hosted on GitHub Pages.
 
 ## Default sources
 
@@ -58,8 +64,8 @@ Still preserved:
 
 - No demo teams
 - No fake scores
-- No fallback fixtures
-- No static match JSON
+- No hand-written fallback fixtures
+- No manually authored static match JSON
 - No manually editable scores
 
 If all providers fail, the UI shows an error/warning instead of inventing fixtures.
@@ -95,6 +101,18 @@ Then open:
 
 `npm run dev` uses `local-server.js`, a small credential-free Node server that serves the static app and the same `/api/live-scores` handler. Use `npm run vercel:dev` when you specifically want the Vercel CLI.
 
+## GitHub Pages static data
+
+```bash
+npm run build:data
+npm run build:pages
+npm run deploy
+```
+
+- `build:data` fetches free/public sources and writes `data/live-scores.json`.
+- `build:pages` copies only the static frontend and generated data into `dist/`.
+- `deploy` publishes `dist/` to `gh-pages`.
+
 ## Required dependency
 
 This version adds:
@@ -111,6 +129,6 @@ ESPN's endpoint is a public site JSON endpoint, not an official FIFA API. The Wo
 
 ## Public display state
 
-The public screen now fetches the configured API on every refresh. It may render local cockpit settings immediately while waiting for the network, but it will not keep showing stale match scores as a substitute for a working live endpoint.
+The public screen now fetches the configured API on every refresh. It may render local cockpit settings immediately while waiting for the network. On static hosting, it falls back to `data/live-scores.json`, which is generated from free data sources during deploy.
 
-`localStorage` sync is same-browser only. For multiple devices or production venues, deploy the API and configure every screen with the same `/api/live-scores` endpoint or an absolute Vercel API URL.
+`localStorage` sync is same-browser only. For multiple devices or production venues, deploy the API and configure every screen with the same `/api/live-scores` endpoint or an absolute Vercel API URL when true live updates are required.
