@@ -9,7 +9,7 @@
     "dev": "node local-server.js",
     "start": "node local-server.js",
     "vercel:dev": "vercel dev",
-    "deploy": "npm run build:pages && gh-pages -d dist --dotfiles --nojekyll"
+    "deploy": "npm run build:pages && gh-pages -d dist --dotfiles --nojekyll --no-history"
   },
   "dependencies": {
     "cheerio": "^1.0.0"
