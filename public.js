@@ -17,6 +17,7 @@ let state = {
   sponsors: [],
   venue: null,
   tracking: { checkins: 0, interactions: 0 },
+  ticker: [],
   matches: []
 };
 
@@ -54,6 +55,7 @@ async function loadState() {
       sponsors: [],
       venue: null,
       tracking: { checkins: 0, interactions: 0 },
+      ticker: [],
       matches: []
     };
   }
@@ -82,6 +84,7 @@ function normaliseState(payload) {
     mainMatchId: payload.mainMatchId || null,
     venue: payload.venue || null,
     tracking: payload.tracking || { checkins: 0, interactions: 0 },
+    ticker: Array.isArray(payload.ticker) ? payload.ticker : [],
     matches: Array.isArray(payload.matches) ? payload.matches.map(normaliseMatch).filter(Boolean) : []
   };
 }
@@ -206,12 +209,12 @@ function renderSponsors() {
 }
 
 function renderTicker(featured) {
-  const parts = [];
+  const parts = state.ticker?.length ? [...state.ticker] : [];
 
-  if (featured) {
+  if (!parts.length && featured) {
     parts.push(`REALTIME · FEATURED ${featured.home.code} v ${featured.away.code} · ${statusText(featured)}`);
     parts.push(...state.matches.map(match => `${match.status === "live" ? "● LIVE" : match.status === "done" ? "FT" : "KO"} ${match.home.code} ${score(match.home.goals)}-${score(match.away.goals)} ${match.away.code} · ${match.venue}`));
-  } else {
+  } else if (!parts.length) {
     parts.push(state.error ? `REALTIME FEED ERROR · ${state.error}` : "WAITING FOR REALTIME MATCH DATA · NO MOCK FIXTURES");
   }
 

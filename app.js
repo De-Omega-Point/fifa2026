@@ -16,6 +16,7 @@ const EMPTY_LIVE_STATE = {
   source: "not-connected",
   fetchedAt: null,
   error: null,
+  ticker: [],
   matches: []
 };
 
@@ -106,6 +107,7 @@ function publishPublicState() {
       checkins: tracking.checkins,
       interactions: tracking.interactions
     },
+    ticker: liveState.ticker,
     matches: liveState.matches
   };
 
@@ -136,6 +138,7 @@ async function fetchRealtime() {
       notice: payload.notice || "",
       sponsors: Array.isArray(payload.sponsors) ? payload.sponsors : [],
       venue: payload.venue || null,
+      ticker: Array.isArray(payload.ticker) ? payload.ticker : [],
       matches: payload.matches.map(normaliseMatch).filter(Boolean)
     };
 
@@ -211,6 +214,7 @@ function normaliseStatus(status) {
 
 function render() {
   renderConnectionCard();
+  renderLiveTicker();
   renderSettings();
   renderKpis();
   renderMatchList();
@@ -221,6 +225,18 @@ function render() {
   renderAnalytics();
   renderChat();
   renderSentiment();
+}
+
+function renderLiveTicker() {
+  const items = liveState.ticker?.length
+    ? liveState.ticker
+    : liveState.error
+      ? [`LIVE DATA ERROR · ${liveState.error}`]
+      : ["WAITING FOR LIVE TICKER DATA · NO MOCK FIXTURES"];
+
+  $("liveTickerList").innerHTML = items.slice(0, 8).map(item => `
+    <span>${escapeHtml(item)}</span>
+  `).join("");
 }
 
 function setConnection(type, title, detail, pill) {
