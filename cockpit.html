@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>FIFA 2026 Operator Cockpit</title>
+  <meta name="description" content="Live-only football tracking cockpit with no mock match data, synced public screen and realtime API requirement." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="cockpit">
+  <main class="cockpit">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">De-Omega-Point · Live-Only Mode</p>
+        <h1>Multi-Source Live Ticker + Scoreboard OS</h1>
+        <p class="hero-copy">
+          No mock teams. No fake scores. This cockpit displays match data returned from the free APIs + server-side web scraping providers running simultaneously.
+          Venue and incident tracking remain operator-controlled because they are real event observations.
+        </p>
+      </div>
+
+      <div class="hero-actions">
+        <a class="btn" href="./index.html">Home</a>
+        <a class="btn primary" href="./public.html" target="_blank">Open public screen</a>
+        <button class="btn" id="refreshBtn">Refresh live feed</button>
+        <button class="btn" id="exportBtn">Export event log</button>
+        <button class="btn danger" id="clearBtn">Clear local tracking</button>
+      </div>
+    </header>
+
+    <section class="connection-card" id="connectionCard">
+      <div>
+        <h2 id="connectionTitle">Connecting to realtime feed…</h2>
+        <p id="connectionDetail">Waiting for /api/live-scores using free APIs + web scraping combo.</p>
+      </div>
+      <span class="status-pill" id="sourcePill">Checking</span>
+    </section>
+
+    <section class="live-ticker-panel" aria-label="Live ticker">
+      <div class="ticker-label compact"><span class="pulse"></span><strong>Live ticker</strong></div>
+      <div class="cockpit-ticker-window">
+        <div class="cockpit-ticker-list" id="liveTickerList">
+          <span>WAITING FOR LIVE TICKER DATA</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpi-grid" id="kpiGrid"></section>
+
+    <section class="layout">
+      <aside class="rail">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Realtime match board</h2>
+              <p>Read-only scores from the live API.</p>
+            </div>
+            <span class="pill" id="matchCountPill">0 matches</span>
+          </div>
+
+          <div class="filters">
+            <input id="matchSearch" placeholder="Search live teams, venue, city..." />
+            <select id="statusFilter">
+              <option value="all">All</option>
+              <option value="live">Live</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+
+          <div class="match-list" id="matchList"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Public screen settings</h2>
+              <p>Real event messages, not match data.</p>
+            </div>
+          </div>
+
+          <label class="field">
+            Event name
+            <input id="eventNameInput" placeholder="e.g. Community Live Viewing" />
+          </label>
+
+          <label class="field">
+            Public notice
+            <textarea id="noticeInput" placeholder="Message shown on public screen"></textarea>
+          </label>
+
+          <label class="field">
+            Sponsors, comma-separated
+            <input id="sponsorsInput" placeholder="Sponsor 1, Sponsor 2, Sponsor 3" />
+          </label>
+
+          <label class="field">
+            Realtime API URL
+            <input id="apiUrlInput" placeholder="/api/live-scores" />
+          </label>
+
+          <button class="btn primary full" id="saveSettingsBtn">Save public settings</button>
+        </section>
+      </aside>
+
+      <section class="main-stack">
+        <section class="panel live-panel">
+          <div class="panel-head">
+            <div>
+              <h2 id="selectedTitle">No live match selected</h2>
+              <p id="selectedMeta">Connect the live feed to select a match.</p>
+            </div>
+            <button class="btn primary" id="setFeaturedBtn">Set as public match</button>
+          </div>
+
+          <div class="readonly-score" id="readonlyScore"></div>
+
+          <div class="timeline" id="timeline"></div>
+        </section>
+
+        <section class="split-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Venue tracking</h2>
+                <p>Real operator observations.</p>
+              </div>
+              <button class="btn" id="addZoneBtn">Add zone</button>
+            </div>
+            <div class="zone-grid" id="zoneGrid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Attendance pulse</h2>
+                <p>Local event counters.</p>
+              </div>
+            </div>
+            <div class="pulse-grid" id="pulseGrid"></div>
+          </section>
+        </section>
+
+        <section class="split-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Incident log</h2>
+                <p>Safety and operational tracking.</p>
+              </div>
+            </div>
+            <div class="incident-form">
+              <select id="incidentSeverity">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+              <input id="incidentZone" placeholder="Zone" />
+              <input id="incidentNote" placeholder="Real incident note..." />
+              <button class="btn" id="addIncidentBtn">Log</button>
+            </div>
+            <div class="incident-list" id="incidentList"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Live diagnostics</h2>
+                <p>Feed health and local tracking.</p>
+              </div>
+              <button class="btn" id="downloadCsvBtn">CSV</button>
+            </div>
+            <div class="analytics" id="analytics"></div>
+          </section>
+        </section>
+
+        <section class="split-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Community chat monitor</h2>
+                <p>Live messages and announcements.</p>
+              </div>
+              <button class="btn danger" id="clearChatBtn">Clear chat</button>
+            </div>
+            <div class="chat-list" id="chatList"></div>
+            <div class="chat-input-bar">
+              <input id="chatMessageInput" placeholder="Send official announcement..." />
+              <button class="btn primary" id="sendChatBtn">Send</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Fan sentiment & simulation</h2>
+                <p>Monitor fan reaction rates & triggers.</p>
+              </div>
+              <button class="btn" id="toggleSimulationBtn">Start simulation</button>
+            </div>
+            
+            <div class="sentiment-card">
+              <div class="sentiment-meter">
+                <div class="sentiment-labels">
+                  <span id="sentimentHomeLabel">HOME (TBC)</span>
+                  <span id="sentimentHomePct">50%</span>
+                </div>
+                <div class="sentiment-track">
+                  <div class="sentiment-fill-home" id="sentimentHomeFill" style="width: 50%"></div>
+                </div>
+              </div>
+              
+              <div class="sentiment-meter">
+                <div class="sentiment-labels">
+                  <span id="sentimentAwayLabel">AWAY (TBC)</span>
+                  <span id="sentimentAwayPct">50%</span>
+                </div>
+                <div class="sentiment-track">
+                  <div class="sentiment-fill-away" id="sentimentAwayFill" style="width: 50%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sim-controls">
+              <button class="btn" id="simGoalHomeBtn">Home Cheer</button>
+              <button class="btn" id="simGoalAwayBtn">Away Cheer</button>
+              <button class="btn" id="simRefBtn">Ref Complaint</button>
+              <button class="btn" id="simChantBtn">Chant/Song</button>
+            </div>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

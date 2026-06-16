@@ -7,7 +7,9 @@ const DIST = path.join(ROOT, "dist");
 
 const FILES = [
   "index.html",
+  "cockpit.html",
   "public.html",
+  "main.js",
   "app.js",
   "public.js",
   "styles.css",

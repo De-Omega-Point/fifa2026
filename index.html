@@ -3,235 +3,119 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Live-Only Tracking OS</title>
-  <meta name="description" content="Live-only football tracking cockpit with no mock match data, synced public screen and realtime API requirement." />
+  <title>FIFA 2026 Live Hub</title>
+  <meta name="description" content="FIFA 2026 live hub with free-source scores, next fixtures, standings, trophies and source health." />
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body data-page="cockpit">
-  <main class="cockpit">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">De-Omega-Point · Live-Only Mode</p>
-        <h1>Multi-Source Live Ticker + Scoreboard OS</h1>
-        <p class="hero-copy">
-          No mock teams. No fake scores. This cockpit displays match data returned from the free APIs + server-side web scraping providers running simultaneously.
-          Venue and incident tracking remain operator-controlled because they are real event observations.
-        </p>
-      </div>
-
-      <div class="hero-actions">
-        <a class="btn primary" href="./public.html" target="_blank">Open public screen</a>
-        <button class="btn" id="refreshBtn">Refresh live feed</button>
-        <button class="btn" id="exportBtn">Export event log</button>
-        <button class="btn danger" id="clearBtn">Clear local tracking</button>
-      </div>
+<body data-page="home">
+  <main class="home-shell">
+    <header class="home-topbar">
+      <a class="brand-link" href="./index.html">
+        <span class="brand-mark">Ω</span>
+        <span>FIFA 2026 Live Hub</span>
+      </a>
+      <nav class="home-nav" aria-label="Primary">
+        <a href="#play">Play</a>
+        <a href="#standings">Standings</a>
+        <a href="#trophies">Trophies</a>
+        <a href="./public.html">Public screen</a>
+        <a href="./cockpit.html">Cockpit</a>
+      </nav>
     </header>
 
-    <section class="connection-card" id="connectionCard">
-      <div>
-        <h2 id="connectionTitle">Connecting to realtime feed…</h2>
-        <p id="connectionDetail">Waiting for /api/live-scores using free APIs + web scraping combo.</p>
+    <section class="home-hero">
+      <div class="home-hero-main">
+        <p class="eyebrow">Free APIs + public-source scraping</p>
+        <h1>World Cup signal without fake scores.</h1>
+        <p class="hero-copy">
+          Current play, next fixtures, standings and trophy context from the live provider pipeline. If the live API is unavailable, this page uses the generated free-data snapshot.
+        </p>
       </div>
-      <span class="status-pill" id="sourcePill">Checking</span>
+      <div class="home-status-card">
+        <span class="status-pill" id="homeSourcePill">Connecting</span>
+        <strong id="homeMatchCount">0 matches</strong>
+        <span id="homeUpdatedAt">Waiting for feed</span>
+      </div>
     </section>
 
-    <section class="live-ticker-panel" aria-label="Live ticker">
+    <section class="home-ticker" aria-label="Live ticker">
       <div class="ticker-label compact"><span class="pulse"></span><strong>Live ticker</strong></div>
-      <div class="cockpit-ticker-window">
-        <div class="cockpit-ticker-list" id="liveTickerList">
-          <span>WAITING FOR LIVE TICKER DATA</span>
+      <div class="home-ticker-window">
+        <div class="home-ticker-list" id="homeTickerList">
+          <span>CONNECTING TO FREE DATA SOURCES</span>
         </div>
       </div>
     </section>
 
-    <section class="kpi-grid" id="kpiGrid"></section>
-
-    <section class="layout">
-      <aside class="rail">
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Realtime match board</h2>
-              <p>Read-only scores from the live API.</p>
-            </div>
-            <span class="pill" id="matchCountPill">0 matches</span>
+    <section class="home-grid" id="play">
+      <section class="home-panel play-panel">
+        <div class="home-panel-head">
+          <div>
+            <p class="eyebrow">Play</p>
+            <h2>Currently playing</h2>
           </div>
+          <span class="pill" id="liveCountPill">0 live</span>
+        </div>
+        <div class="play-list" id="currentlyPlaying"></div>
+      </section>
 
-          <div class="filters">
-            <input id="matchSearch" placeholder="Search live teams, venue, city..." />
-            <select id="statusFilter">
-              <option value="all">All</option>
-              <option value="live">Live</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="done">Done</option>
-            </select>
+      <section class="home-panel">
+        <div class="home-panel-head">
+          <div>
+            <p class="eyebrow">Follow next</p>
+            <h2>Next 4 teams</h2>
           </div>
+        </div>
+        <div class="next-team-grid" id="nextTeams"></div>
+      </section>
+    </section>
 
-          <div class="match-list" id="matchList"></div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Public screen settings</h2>
-              <p>Real event messages, not match data.</p>
-            </div>
+    <section class="home-grid standings-section" id="standings">
+      <section class="home-panel standings-panel">
+        <div class="home-panel-head">
+          <div>
+            <p class="eyebrow">Standings</p>
+            <h2>Team rankings</h2>
           </div>
+          <span class="pill" id="standingCountPill">0 teams</span>
+        </div>
+        <div class="standings-table" id="standingsTable"></div>
+      </section>
 
-          <label class="field">
-            Event name
-            <input id="eventNameInput" placeholder="e.g. Community Live Viewing" />
-          </label>
-
-          <label class="field">
-            Public notice
-            <textarea id="noticeInput" placeholder="Message shown on public screen"></textarea>
-          </label>
-
-          <label class="field">
-            Sponsors, comma-separated
-            <input id="sponsorsInput" placeholder="Sponsor 1, Sponsor 2, Sponsor 3" />
-          </label>
-
-          <label class="field">
-            Realtime API URL
-            <input id="apiUrlInput" placeholder="/api/live-scores" />
-          </label>
-
-          <button class="btn primary full" id="saveSettingsBtn">Save public settings</button>
-        </section>
-      </aside>
-
-      <section class="main-stack">
-        <section class="panel live-panel">
-          <div class="panel-head">
-            <div>
-              <h2 id="selectedTitle">No live match selected</h2>
-              <p id="selectedMeta">Connect the live feed to select a match.</p>
-            </div>
-            <button class="btn primary" id="setFeaturedBtn">Set as public match</button>
+      <section class="home-panel">
+        <div class="home-panel-head">
+          <div>
+            <p class="eyebrow">Source health</p>
+            <h2>Data providers</h2>
           </div>
+        </div>
+        <div class="provider-list" id="providerList"></div>
+      </section>
+    </section>
 
-          <div class="readonly-score" id="readonlyScore"></div>
+    <section class="home-grid" id="trophies">
+      <section class="home-panel trophies-panel">
+        <div class="home-panel-head">
+          <div>
+            <p class="eyebrow">Trophies</p>
+            <h2>Current holders</h2>
+          </div>
+        </div>
+        <div class="trophy-grid" id="trophyGrid"></div>
+      </section>
 
-          <div class="timeline" id="timeline"></div>
-        </section>
-
-        <section class="split-grid">
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>Venue tracking</h2>
-                <p>Real operator observations.</p>
-              </div>
-              <button class="btn" id="addZoneBtn">Add zone</button>
-            </div>
-            <div class="zone-grid" id="zoneGrid"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>Attendance pulse</h2>
-                <p>Local event counters.</p>
-              </div>
-            </div>
-            <div class="pulse-grid" id="pulseGrid"></div>
-          </section>
-        </section>
-
-        <section class="split-grid">
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>Incident log</h2>
-                <p>Safety and operational tracking.</p>
-              </div>
-            </div>
-            <div class="incident-form">
-              <select id="incidentSeverity">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-              <input id="incidentZone" placeholder="Zone" />
-              <input id="incidentNote" placeholder="Real incident note..." />
-              <button class="btn" id="addIncidentBtn">Log</button>
-            </div>
-            <div class="incident-list" id="incidentList"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>Live diagnostics</h2>
-                <p>Feed health and local tracking.</p>
-              </div>
-              <button class="btn" id="downloadCsvBtn">CSV</button>
-            </div>
-            <div class="analytics" id="analytics"></div>
-          </section>
-        </section>
-
-        <section class="split-grid">
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>Community chat monitor</h2>
-                <p>Live messages and announcements.</p>
-              </div>
-              <button class="btn danger" id="clearChatBtn">Clear chat</button>
-            </div>
-            <div class="chat-list" id="chatList"></div>
-            <div class="chat-input-bar">
-              <input id="chatMessageInput" placeholder="Send official announcement..." />
-              <button class="btn primary" id="sendChatBtn">Send</button>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>Fan sentiment & simulation</h2>
-                <p>Monitor fan reaction rates & triggers.</p>
-              </div>
-              <button class="btn" id="toggleSimulationBtn">Start simulation</button>
-            </div>
-            
-            <div class="sentiment-card">
-              <div class="sentiment-meter">
-                <div class="sentiment-labels">
-                  <span id="sentimentHomeLabel">HOME (TBC)</span>
-                  <span id="sentimentHomePct">50%</span>
-                </div>
-                <div class="sentiment-track">
-                  <div class="sentiment-fill-home" id="sentimentHomeFill" style="width: 50%"></div>
-                </div>
-              </div>
-              
-              <div class="sentiment-meter">
-                <div class="sentiment-labels">
-                  <span id="sentimentAwayLabel">AWAY (TBC)</span>
-                  <span id="sentimentAwayPct">50%</span>
-                </div>
-                <div class="sentiment-track">
-                  <div class="sentiment-fill-away" id="sentimentAwayFill" style="width: 50%"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="sim-controls">
-              <button class="btn" id="simGoalHomeBtn">Home Cheer</button>
-              <button class="btn" id="simGoalAwayBtn">Away Cheer</button>
-              <button class="btn" id="simRefBtn">Ref Complaint</button>
-              <button class="btn" id="simChantBtn">Chant/Song</button>
-            </div>
-          </section>
-        </section>
+      <section class="home-panel">
+        <div class="home-panel-head">
+          <div>
+            <p class="eyebrow">Tournament pulse</p>
+            <h2>Useful context</h2>
+          </div>
+        </div>
+        <div class="insight-grid" id="insightGrid"></div>
       </section>
     </section>
   </main>
 
-  <script src="./app.js"></script>
+  <script src="./main.js"></script>
 </body>
 </html>

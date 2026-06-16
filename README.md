@@ -14,6 +14,12 @@ Review Cycle: Weekly during tournament
 
 This version adds a simultaneous free-API + server-side web-scraping combo with bounded provider timeouts.
 
+The main pages are:
+
+- `index.html`: fan-facing landing dashboard with Play, Standings, Trophies, ticker, provider health and useful tournament context.
+- `cockpit.html`: operator cockpit for venue settings, public-screen control, incident tracking and diagnostics.
+- `public.html`: large-screen public display.
+
 The live endpoint:
 
 `/api/live-scores`
