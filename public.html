@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Live-Only Public Screen</title>
+  <meta name="description" content="Clean public screen that only displays realtime match data from configured live API." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="public">
+  <div class="public-shell">
+    <header class="public-ticker">
+      <div class="ticker-label"><span class="pulse"></span><strong id="feedLabel">Live-only</strong></div>
+      <div class="ticker-window">
+        <div class="ticker-track" id="tickerTrack">
+          <span id="tickerA">Connecting to realtime feed…</span>
+          <span id="tickerB" aria-hidden="true">Connecting to realtime feed…</span>
+        </div>
+      </div>
+      <div class="public-clock">
+        <strong id="clockTime">--:--</strong>
+        <span id="clockDate">Loading</span>
+      </div>
+    </header>
+
+    <main class="public-stage">
+      <section class="public-hero">
+        <div class="aurora" aria-hidden="true"></div>
+
+        <div class="public-top">
+          <div class="brand-lockup">
+            <div class="brand-flag large" aria-hidden="true">
+              <span class="flag-canton"></span>
+              <span class="flag-star star-commonwealth"></span>
+              <span class="flag-star star-one"></span>
+              <span class="flag-star star-two"></span>
+              <span class="flag-star star-three"></span>
+              <span class="flag-star star-four"></span>
+              <span class="flag-star star-five"></span>
+            </div>
+            <div>
+              <h1 id="eventName">Live Public Viewing</h1>
+              <p>Multi-source live feed · no mock data</p>
+            </div>
+          </div>
+          <div class="state-badge" id="matchState">CONNECTING</div>
+        </div>
+
+        <div class="public-meta" id="matchMeta">Waiting for multi-source realtime match data…</div>
+        <div class="public-score" id="publicScore"></div>
+
+        <div class="public-event">
+          <div>
+            <span id="eventMinute">Live feed</span>
+            <p id="eventText">No realtime match data has been received yet.</p>
+          </div>
+          <strong id="minuteBox">--</strong>
+        </div>
+      </section>
+
+      <aside class="public-rail">
+        <section class="glass-card">
+          <div class="card-title">
+            <div>
+              <h2>Next up</h2>
+              <p>Realtime fixtures only</p>
+            </div>
+            <strong id="fixtureCount">0</strong>
+          </div>
+          <div class="fixture-stack" id="fixtureStack"></div>
+        </section>
+
+        <section class="glass-card notice-card">
+          <div class="card-title">
+            <div>
+              <h2>Notice</h2>
+              <p>Venue message</p>
+            </div>
+          </div>
+          <div class="notice-copy">
+            <p id="publicNotice">Live feed required.</p>
+            <small id="subNotice">No mock match data will be displayed.</small>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="public-footer">
+      <section class="venue-signal">
+        <h2 id="venueTitle">Venue signal</h2>
+        <p id="venueDetail">Waiting for operator venue status…</p>
+        <div class="capacity-meter"><span id="capacityFill"></span></div>
+      </section>
+
+      <section class="sponsor-row" id="sponsorRow"></section>
+
+      <section class="screen-note">
+        <strong id="checkinsLabel">0 check-ins</strong>
+        <span id="engagementLabel">0 interactions</span>
+      </section>
+    </footer>
+  </div>
+
+  <script src="./public.js"></script>
+</body>
+</html>

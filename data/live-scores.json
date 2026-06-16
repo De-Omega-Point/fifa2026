@@ -1,0 +1,190 @@
+{
+  "source": "multi-source-live",
+  "fetchedAt": "2026-06-16T08:07:52.661Z",
+  "eventName": "",
+  "notice": "",
+  "sponsors": [],
+  "venue": null,
+  "providers": [
+    {
+      "name": "espn-fifa-world-api",
+      "kind": "free-json-api",
+      "ok": true,
+      "count": 3,
+      "message": "Loaded"
+    },
+    {
+      "name": "espn-scoreboard-scrape",
+      "kind": "web-scrape",
+      "ok": true,
+      "count": 0,
+      "message": "Loaded but returned zero matches"
+    }
+  ],
+  "warnings": [
+    "espn-scoreboard-scrape: scrape source loaded but no match candidates were found"
+  ],
+  "ticker": [
+    "MULTI-SOURCE LIVE · ✓ espn-fifa-world-api: 3 · ✓ espn-scoreboard-scrape: 0",
+    "KO FRA 0-0 SEN · MetLife Stadium",
+    "KO IRQ 0-0 NOR · Gillette Stadium",
+    "KO ARG 0-0 ALG · GEHA Field at Arrowhead Stadium",
+    "WARNINGS · espn-scoreboard-scrape: scrape source loaded but no match candidates were found"
+  ],
+  "scoreboard": [
+    {
+      "id": "760432",
+      "status": "upcoming",
+      "elapsed": 0,
+      "kickoff": "2026-06-16T19:00Z",
+      "label": "FRA 0-0 SEN",
+      "home": {
+        "name": "France",
+        "code": "FRA",
+        "goals": 0
+      },
+      "away": {
+        "name": "Senegal",
+        "code": "SEN",
+        "goals": 0
+      },
+      "venue": "MetLife Stadium",
+      "sources": [
+        "espn-fifa-world-api"
+      ]
+    },
+    {
+      "id": "760430",
+      "status": "upcoming",
+      "elapsed": 0,
+      "kickoff": "2026-06-16T22:00Z",
+      "label": "IRQ 0-0 NOR",
+      "home": {
+        "name": "Iraq",
+        "code": "IRQ",
+        "goals": 0
+      },
+      "away": {
+        "name": "Norway",
+        "code": "NOR",
+        "goals": 0
+      },
+      "venue": "Gillette Stadium",
+      "sources": [
+        "espn-fifa-world-api"
+      ]
+    },
+    {
+      "id": "760433",
+      "status": "upcoming",
+      "elapsed": 0,
+      "kickoff": "2026-06-17T01:00Z",
+      "label": "ARG 0-0 ALG",
+      "home": {
+        "name": "Argentina",
+        "code": "ARG",
+        "goals": 0
+      },
+      "away": {
+        "name": "Algeria",
+        "code": "ALG",
+        "goals": 0
+      },
+      "venue": "GEHA Field at Arrowhead Stadium",
+      "sources": [
+        "espn-fifa-world-api"
+      ]
+    }
+  ],
+  "matches": [
+    {
+      "id": "760432",
+      "group": "FIFA World Cup, Group I",
+      "round": "FIFA World Cup, Group I",
+      "status": "upcoming",
+      "elapsed": 0,
+      "kickoff": "2026-06-16T19:00Z",
+      "venue": "MetLife Stadium",
+      "city": "East Rutherford, New Jersey",
+      "home": {
+        "name": "France",
+        "code": "FRA",
+        "goals": 0
+      },
+      "away": {
+        "name": "Senegal",
+        "code": "SEN",
+        "goals": 0
+      },
+      "events": [
+        {
+          "minute": "KO",
+          "text": "Fixture loaded from ESPN FIFA World Cup scoreboard."
+        }
+      ],
+      "sources": [
+        "espn-fifa-world-api"
+      ]
+    },
+    {
+      "id": "760430",
+      "group": "FIFA World Cup, Group I",
+      "round": "FIFA World Cup, Group I",
+      "status": "upcoming",
+      "elapsed": 0,
+      "kickoff": "2026-06-16T22:00Z",
+      "venue": "Gillette Stadium",
+      "city": "Foxborough, Massachusetts",
+      "home": {
+        "name": "Iraq",
+        "code": "IRQ",
+        "goals": 0
+      },
+      "away": {
+        "name": "Norway",
+        "code": "NOR",
+        "goals": 0
+      },
+      "events": [
+        {
+          "minute": "KO",
+          "text": "Fixture loaded from ESPN FIFA World Cup scoreboard."
+        }
+      ],
+      "sources": [
+        "espn-fifa-world-api"
+      ]
+    },
+    {
+      "id": "760433",
+      "group": "FIFA World Cup, Group J",
+      "round": "FIFA World Cup, Group J",
+      "status": "upcoming",
+      "elapsed": 0,
+      "kickoff": "2026-06-17T01:00Z",
+      "venue": "GEHA Field at Arrowhead Stadium",
+      "city": "Kansas City, Missouri",
+      "home": {
+        "name": "Argentina",
+        "code": "ARG",
+        "goals": 0
+      },
+      "away": {
+        "name": "Algeria",
+        "code": "ALG",
+        "goals": 0
+      },
+      "events": [
+        {
+          "minute": "KO",
+          "text": "Fixture loaded from ESPN FIFA World Cup scoreboard."
+        }
+      ],
+      "sources": [
+        "espn-fifa-world-api"
+      ]
+    }
+  ],
+  "staticSnapshot": true,
+  "generatedAt": "2026-06-16T08:07:52.661Z"
+}
