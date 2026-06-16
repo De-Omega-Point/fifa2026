@@ -119,6 +119,77 @@ input:focus, select:focus, textarea:focus {
   font-weight: 950;
 }
 
+.brand-flag {
+  --flag-w: 72px;
+  --flag-h: 46px;
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--flag-w);
+  height: var(--flag-h);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 73% 31%, var(--gold) 0 3px, transparent 3.5px),
+    radial-gradient(circle at 86% 42%, var(--cyan) 0 2.5px, transparent 3px),
+    radial-gradient(circle at 76% 58%, var(--green) 0 2.6px, transparent 3px),
+    radial-gradient(circle at 89% 72%, var(--gold) 0 2.8px, transparent 3.3px),
+    radial-gradient(circle at 63% 69%, var(--cyan) 0 2px, transparent 2.5px),
+    linear-gradient(135deg, rgba(131,255,130,.26), transparent 42%),
+    linear-gradient(160deg, #061328, #081b32 58%, #02040b);
+  box-shadow: 0 16px 36px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+.brand-flag.large {
+  --flag-w: clamp(64px,5.6vw,102px);
+  --flag-h: clamp(42px,3.65vw,66px);
+  border-radius: clamp(14px,1.25vw,22px);
+}
+
+.brand-flag::before,
+.brand-flag::after,
+.flag-canton {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 44%;
+  height: 50%;
+}
+
+.brand-flag::before {
+  background:
+    linear-gradient(32deg, transparent 42%, var(--gold) 43% 50%, transparent 51%),
+    linear-gradient(148deg, transparent 42%, var(--gold) 43% 50%, transparent 51%);
+  opacity: .96;
+}
+
+.brand-flag::after {
+  background:
+    linear-gradient(0deg, transparent 43%, var(--cyan) 44% 55%, transparent 56%),
+    linear-gradient(90deg, transparent 43%, var(--cyan) 44% 55%, transparent 56%);
+}
+
+.flag-canton {
+  background: rgba(2,4,11,.26);
+}
+
+.flag-star {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--gold);
+  box-shadow: 0 0 12px rgba(255,209,102,.55);
+}
+
+.star-commonwealth { left: 22%; top: 67%; width: 7px; height: 7px; background: var(--green); }
+.star-one { left: 70%; top: 25%; }
+.star-two { left: 84%; top: 37%; width: 5px; height: 5px; background: var(--cyan); }
+.star-three { left: 74%; top: 56%; width: 5px; height: 5px; background: var(--green); }
+.star-four { left: 87%; top: 69%; }
+.star-five { left: 62%; top: 67%; width: 4px; height: 4px; background: var(--cyan); }
+
 .home-nav {
   display: flex;
   gap: 8px;
@@ -946,18 +1017,14 @@ body[data-page="public"] { overflow: hidden; }
   gap: clamp(10px,1vw,18px);
 }
 
-.brand-mark {
-  width: clamp(44px,4vw,74px);
-  height: clamp(44px,4vw,74px);
-  display: grid;
-  place-items: center;
-  border-radius: clamp(15px,1.4vw,24px);
-  color: var(--green-dark);
-  font-size: clamp(1.35rem,2.2vw,2.8rem);
-  font-weight: 950;
-  background:
-    radial-gradient(circle at 50% 46%, #02040b 0 19%, transparent 20%),
-    conic-gradient(from 120deg,var(--green),var(--cyan),var(--purple),var(--green));
+.brand-lockup.compact {
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.brand-lockup.compact .eyebrow {
+  margin: 0;
 }
 
 .brand-lockup h1 {
